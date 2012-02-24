@@ -98,7 +98,7 @@ int main(int argc, const char *argv[])
     for (int i = 1; i < p; i++)
     {
       pivots[i - 1] = gsamples[((p * i) + (p / 2) - 1)];
-      printf("[P(%d)] Chosen pivots(%d): %d\n", id, i, pivots[i - 1]);
+      // printf("[P(%d)] Chosen pivots(%d): %d\n", id, i, pivots[i - 1]);
     }
   }
 
