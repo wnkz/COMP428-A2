@@ -1,4 +1,5 @@
 *.o
+*.out
 *~
 .DS_Store
 build
