@@ -1,15 +1,12 @@
 //
-//  qsort.c
+//  compare.c
 //  COMP428-A2
 //
 //  Created by Grégoire Morpain on 2012-02-23.
 //  (c) Copyright 2012 Grégoire Morpain. All Rights Reserved.
 //
 
-#include <iostream>
-#include <cstdlib>
-
-int main()
+int compare(const void *a, const void *b)
 {
-  return EXIT_SUCCESS;
+	return (*(int*)a - *(int*)b);
 }

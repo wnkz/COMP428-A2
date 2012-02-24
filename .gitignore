@@ -1,6 +1,9 @@
 *.o
 *.out
+*.dSYM
 *~
 .DS_Store
 build
 bin
+input.txt
+output.txt
