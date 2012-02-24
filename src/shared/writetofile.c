@@ -9,21 +9,21 @@
 #include <stdio.h>
 #include "comp428a2.h"
 
-int	writeToFile(const char *filename, int *values, int nSize)
+int writeToFile(const char *filename, int *values, int nSize)
 {
-	FILE *f;
-	
-	if ((f = fopen(filename, "w")) == NULL)
-	{
-		fprintf(stderr, "Cannot open file: %s for writing\n", filename);
-		return -1;
-	}
-	
-	int i;
-	for (i = 0; i < (nSize - 1); i++)
-		fprintf(f, "%d, ", values[i]);
-	fprintf(f, "%d\n", values[i]);
-	
-	fclose(f);
-	return 0;
+  FILE *f;
+
+  if ((f = fopen(filename, "w")) == NULL)
+  {
+    fprintf(stderr, "Cannot open file: %s for writing\n", filename);
+    return -1;
+  }
+
+  int i;
+  for (i = 0; i < (nSize - 1); i++)
+    fprintf(f, "%d, ", values[i]);
+  fprintf(f, "%d\n", values[i]);
+
+  fclose(f);
+  return 0;
 }

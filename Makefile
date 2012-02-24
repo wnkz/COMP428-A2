@@ -18,7 +18,7 @@ DIR_COPY    = bin
 DIR_QSORT   = $(DIR_SRC)/qsort
 DIR_PSRS    = $(DIR_SRC)/psrs
 DIR_PQSORT  = $(DIR_SRC)/pqsort
-DIR_SHARED	= $(DIR_SRC)/shared
+DIR_SHARED  = $(DIR_SRC)/shared
 
 NAME_QSORT  = qsort
 NAME_PSRS   = psrs
@@ -27,16 +27,16 @@ NAME_PQSORT = pqsort
 SRC_QSORT   = $(DIR_QSORT)/qsort.c
 SRC_PSRS    = $(DIR_PSRS)/psrs.c
 SRC_PQSORT  = $(DIR_PQSORT)/pqsort.c
-SRC_SHARED	= $(DIR_SHARED)/compare.c \
-							$(DIR_SHARED)/loadfromfile.c \
-							$(DIR_SHARED)/writetofile.c
+SRC_SHARED  = $(DIR_SHARED)/compare.c \
+              $(DIR_SHARED)/loadfromfile.c \
+              $(DIR_SHARED)/writetofile.c
 
 OBJ_QSORT   = $(SRC_QSORT:.c=.o)
 OBJ_PSRS    = $(SRC_PSRS:.c=.o)
 OBJ_PQSORT  = $(SRC_PQSORT:.c=.o)
-OBJ_SHARED	=	$(SRC_SHARED:.c=.o)
+OBJ_SHARED  = $(SRC_SHARED:.c=.o)
 
-INCLUDES		= -I$(DIR_SHARED)
+INCLUDES    = -I$(DIR_SHARED)
 CFLAGS      = -W -Wall -std=c99 $(INCLUDES)
 
 release: DIR_OUT = $(DIR_BUILD)/release

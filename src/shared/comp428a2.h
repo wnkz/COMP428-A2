@@ -9,8 +9,8 @@
 #ifndef __COMP428_A2_H__
 #define __COMP428_A2_H__
 
-#define INPUTFILE		"./input.txt"
-#define OUTPUTFILE 	"./output.txt"
+#define INPUTFILE   "./input.txt"
+#define OUTPUTFILE  "./output.txt"
 
 int compare(const void *a, const void *b);
 int *loadFromFile(const char *filename, int *nSize);

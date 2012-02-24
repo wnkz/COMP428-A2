@@ -11,58 +11,58 @@
 #include <string.h>
 #include "comp428a2.h"
 
-int	*loadFromFile(const char *filename, int *nSize)
+int *loadFromFile(const char *filename, int *nSize)
 {
-	FILE *f;
-	long fSize;
-	char *buffer, *numbers;
-	int* values;
-	
-	if ((f = fopen(filename, "r")) == NULL)
-	{
-		fprintf(stderr, "Cannot open file: %s for reading\n", filename);
-		return NULL;
-	}
-	
-	// Get file size
-	fseek(f, 0, SEEK_END);
+  FILE *f;
+  long fSize;
+  char *buffer, *numbers;
+  int* values;
+
+  if ((f = fopen(filename, "r")) == NULL)
+  {
+    fprintf(stderr, "Cannot open file: %s for reading\n", filename);
+    return NULL;
+  }
+
+  // Get file size
+  fseek(f, 0, SEEK_END);
   fSize = ftell(f);
   rewind(f);
 
-	// Allocate memory for the file
-	if ((buffer = (char *)malloc(fSize * sizeof(char))) == NULL)
-	{
-		fprintf(stderr, "Cannot allocate memory\n");
-		return NULL;
-	}
-	
-	// Copy the file into the buffer
-	if ((size_t)fSize != fread(buffer, 1, fSize, f))
-	{
-		fprintf(stderr, "fread() error\n");
-		return NULL;
-	}
+  // Allocate memory for the file
+  if ((buffer = (char *)malloc(fSize * sizeof(char))) == NULL)
+  {
+    fprintf(stderr, "Cannot allocate memory\n");
+    return NULL;
+  }
 
-	// Get the number of values for allocation
-	(*nSize) = 1;
-	for (int i = 0; buffer[i]; i++)
-		if (buffer[i] == ',')
-			(*nSize)++;
+  // Copy the file into the buffer
+  if ((size_t)fSize != fread(buffer, 1, fSize, f))
+  {
+    fprintf(stderr, "fread() error\n");
+    return NULL;
+  }
 
-	if ((values = (int *)malloc((*nSize) * sizeof(int))) == NULL)
-	{
-		fprintf(stderr, "Cannot allocate memory\n");
-		return NULL;
-	}
+  // Get the number of values for allocation
+  (*nSize) = 1;
+  for (int i = 0; buffer[i]; i++)
+    if (buffer[i] == ',')
+      (*nSize)++;
 
-	numbers = strtok(buffer, ",");
-	for (int i = 0; numbers != NULL; i++)
-	{
-		values[i] = atoi(numbers);
-		numbers = strtok(NULL, ",");
-	}
-	
-	fclose(f);
-	free(buffer);
-	return values;
+  if ((values = (int *)malloc((*nSize) * sizeof(int))) == NULL)
+  {
+    fprintf(stderr, "Cannot allocate memory\n");
+    return NULL;
+  }
+
+  numbers = strtok(buffer, ",");
+  for (int i = 0; numbers != NULL; i++)
+  {
+    values[i] = atoi(numbers);
+    numbers = strtok(NULL, ",");
+  }
+
+  fclose(f);
+  free(buffer);
+  return values;
 }
