@@ -9,9 +9,9 @@
 #include <stdio.h>
 #include "comp428a2.h"
 
-int			writeToFile(const char *filename, int *values, int nSize)
+int	writeToFile(const char *filename, int *values, int nSize)
 {
-	FILE	*f;
+	FILE *f;
 	
 	if ((f = fopen(filename, "w")) == NULL)
 	{

@@ -10,10 +10,10 @@
 #include <stdio.h>
 #include "comp428a2.h"
 
-int			main()
+int	main()
 {
-	int		size;
- 	int		*values = loadFromFile(INPUTFILE, &size);
+	int	size;
+ 	int	*values = loadFromFile(INPUTFILE, &size);
 	
 	if (values == NULL)
 	{

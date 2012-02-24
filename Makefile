@@ -6,7 +6,7 @@
 ##  (c) Copyright 2012 Grégoire Morpain. All rights reserved.
 ##
 
-CC          = gcc
+CC          = mpicc
 RM          = rm -vf
 MKDIR       = @mkdir -p
 CP          = @cp
