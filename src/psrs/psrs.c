@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <mpi.h>
 #include "comp428a2.h"
@@ -17,7 +18,8 @@ int main(int argc, const char *argv[])
 {
   int size, s, psqr;
   int *values = loadFromFile(INPUTFILE, &size);
-  int *chunk, *rsamples, *gsamples, *pivots;
+  int *chunk, *rsamples, *gsamples, *pivots, *rpartitions;
+  int **partitions;
   int id, p;
 
   if (values == NULL)
@@ -35,7 +37,7 @@ int main(int argc, const char *argv[])
   // Broadcast size of array that each slave has to sort
   MPI_Bcast(&s, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
 
-  chunk = (int *)malloc(s * sizeof(int));
+  chunk = malloc(s * sizeof(int));
 
   // Scatter the values from array to the slaves
   MPI_Scatter(values, s, MPI_INT, chunk, s, MPI_INT, ROOT, MPI_COMM_WORLD);
@@ -60,7 +62,7 @@ int main(int argc, const char *argv[])
   // <DEBUG/>
 
   //Each process selects P items from its local sorted sub-list
-  rsamples = (int *)malloc(p * sizeof(int));
+  rsamples = malloc(p * sizeof(int));
   psqr = (int)(pow(p, 2));
   for (int i = 0; i < p; i++)
   {
@@ -69,12 +71,12 @@ int main(int argc, const char *argv[])
   }
 
   if (id == ROOT)
-    gsamples = (int *)malloc(psqr * sizeof(int));
+    gsamples = malloc(psqr * sizeof(int));
 
   // Process P0 collects the regular samples from the P processes (which includes itself)
   MPI_Gather(rsamples, p, MPI_INT, gsamples, p, MPI_INT, ROOT, MPI_COMM_WORLD);
 
-  pivots = (int *)malloc((p - 1) * sizeof(int));
+  pivots = malloc((p - 1) * sizeof(int));
   if (id == ROOT)
   {
     // <DEBUG>
@@ -113,9 +115,42 @@ int main(int argc, const char *argv[])
   // }
   // <DEBUG/>
 
+  // Each process partitions its local sorted sub-list into P partitions,
+  // with the P - 1 pivots as separators
+  partitions = malloc(p * sizeof(int));
+  for (int i = 0, z = 0, partitioned = 0; i <= s; i++)
+  {
+    if ((z >= (p - 1)) || (pivots[z] < chunk[i]))
+    {
+      // If last partition, get to the end of chunk
+      if (z >= (p - 1))
+        for (; i < s; i++);
+
+      int psize = (i - partitioned);
+      partitions[z] = malloc(psize * sizeof(int));
+      memcpy(partitions[z], &(chunk[i - psize]), (psize * sizeof(int)));
+
+      // Each process keeps i(th) partition and sends j(th) partition to process P(j)
+      if (z != id)
+        MPI_Send(partitions[z], psize, MPI_INT, z, 0, MPI_COMM_WORLD);
+
+      z++;
+      partitioned += psize;
+    }
+  }
+
+  rpartitions = malloc(s * sizeof(int));
+  for (int i = 0; i < p; i++)
+  {
+    if (i != id)
+    {
+      MPI_Status status;
+      MPI_Recv(rpartitions, s, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+      // printf("P%d recieving from P%d | elements = %ld\n", id, status.MPI_SOURCE, status._count / sizeof(int));
+    }
+  }
+
   MPI_Finalize();
-
   writeToFile(OUTPUTFILE, values, size);
-
   return EXIT_SUCCESS;
 }
