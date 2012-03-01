@@ -18,9 +18,9 @@ int main(int argc, const char *argv[])
 {
   int size, s, psqr;
   int *values = loadFromFile(INPUTFILE, &size);
-  int *chunk, *rsamples, *gsamples, *pivots, *rpartitions;
+  int *fvalues, *chunk, *rsamples, *gsamples, *pivots, *rpartitions;
   int **partitions;
-  int id, p;
+  int id, p, mypsize, rpartsize;
 
   if (values == NULL)
   {
@@ -76,6 +76,9 @@ int main(int argc, const char *argv[])
   // Process P0 collects the regular samples from the P processes (which includes itself)
   MPI_Gather(rsamples, p, MPI_INT, gsamples, p, MPI_INT, ROOT, MPI_COMM_WORLD);
 
+  // * free memory
+  free(rsamples);
+
   pivots = malloc((p - 1) * sizeof(int));
   if (id == ROOT)
   {
@@ -102,6 +105,9 @@ int main(int argc, const char *argv[])
       pivots[i - 1] = gsamples[((p * i) + (p / 2) - 1)];
       // printf("[P(%d)] Chosen pivots(%d): %d\n", id, i, pivots[i - 1]);
     }
+    
+    // * free memory
+    free(gsamples);
   }
 
   // Broadcast the pivots to the P processes
@@ -133,24 +139,71 @@ int main(int argc, const char *argv[])
       // Each process keeps i(th) partition and sends j(th) partition to process P(j)
       if (z != id)
         MPI_Send(partitions[z], psize, MPI_INT, z, 0, MPI_COMM_WORLD);
+      else
+        mypsize = psize;
 
       z++;
       partitioned += psize;
     }
   }
 
+  // * free memory
+  free(chunk);
+  free(pivots);
+
+  // Merge partitions from other processes
   rpartitions = malloc(s * sizeof(int));
+  rpartsize = 0;
   for (int i = 0; i < p; i++)
   {
     if (i != id)
     {
       MPI_Status status;
-      MPI_Recv(rpartitions, s, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+      MPI_Recv(&(rpartitions[rpartsize]), s, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+      rpartsize += status._count / sizeof(int);
       // printf("P%d recieving from P%d | elements = %ld\n", id, status.MPI_SOURCE, status._count / sizeof(int));
+    }
+    else
+    {
+      memcpy(&(rpartitions[rpartsize]), partitions[id], (mypsize * sizeof(int)));
+      rpartsize += mypsize;
     }
   }
 
+  // * free memory
+  for (int i = 0; i < p; i++)
+    free(partitions[i]);
+  free(partitions);
+
+  qsort(rpartitions, rpartsize, sizeof(int), compare);
+
+  // printf("--- %d\n", rpartsize);
+  printf("[P%d] ---\n", id);
+  for (int i = 0; i < rpartsize; i++)
+  {
+    printf("[%d]\n", rpartitions[i]);
+  }    
+
+  if (id == ROOT)
+    fvalues = malloc(size * sizeof(int));
+
+  //TODO: Gather sub-lists from all processes
+
+  if (id == ROOT)
+  {
+    writeToFile(OUTPUTFILE, fvalues, size);
+
+    // * free memory
+    free(fvalues);
+  }
+
+  // * free memory
+  free(rpartitions);
+
   MPI_Finalize();
-  writeToFile(OUTPUTFILE, values, size);
+  
+  // * free memory
+  free(values);
+
   return EXIT_SUCCESS;
 }
