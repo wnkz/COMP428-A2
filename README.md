@@ -15,5 +15,33 @@
 11. Output Format: sorted numbers are separated by comma (,)
 
 ## Compiling ##
-`make`
+
+*Release*
+
+`make release`
+
+*Debug*
+
+`make debug`
+
 Executables will be in the `bin` folder.
+
+## Generate numbers ##
+
+There is a script in the `tools` folder to help you generate numbers.
+
+* To generate 100 numbers between 0 and 1000
+
+`tools/generatenumbers.sh`
+
+* To generate N numbers between 0 and 1000
+
+`tools/generatenumbers.sh N`
+
+* To generate N numbers between 0 and Z
+
+`tools/generatenumbers.sh N Z`
+
+* To generate N numbers between X and Z
+
+`tools/generatenumbers.sh N Z X`

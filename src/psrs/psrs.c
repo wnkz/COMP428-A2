@@ -42,33 +42,14 @@ int main(int argc, const char *argv[])
   // Scatter the values from array to the slaves
   MPI_Scatter(values, s, MPI_INT, chunk, s, MPI_INT, ROOT, MPI_COMM_WORLD);
 
-  // <DEBUG>
-  // printf("[P(%d)] Received:\n", id);
-  // for (int i = 0; i < s; i++)
-  //  printf("[P(%d)]%d ", id, chunk[i]);
-  // printf("\n");
-  // <DEBUG/>
-
   // Each process sorts its own sub-list of [N/P]
   qsort(chunk, s, sizeof(int), compare);
-
-  // <DEBUG>
-  // printf("[P(%d)] Sorted:\n", id);
-  // for (int i = 0; i < s; i++)
-  //  printf("[P(%d)]%d ", id, chunk[i]);
-  // printf("\n");
-  //
-  // printf("[P(%d)] Done.\n", id);
-  // <DEBUG/>
 
   //Each process selects P items from its local sorted sub-list
   rsamples = malloc(p * sizeof(int));
   psqr = (int)(pow(p, 2));
   for (int i = 0; i < p; i++)
-  {
     rsamples[i] = chunk[(int)((size * i) / psqr)];
-    // printf("[P(%d)] regular sample(%d): %d\n", id, (i + 1), rsamples[i]);
-  }
 
   if (id == ROOT)
     gsamples = malloc(psqr * sizeof(int));
@@ -82,29 +63,12 @@ int main(int argc, const char *argv[])
   pivots = malloc((p - 1) * sizeof(int));
   if (id == ROOT)
   {
-    // <DEBUG>
-    // printf("[P(%d)] Collected regular samples:\n", id);
-    // for (int i = 0; i < psqr; i++)
-    //  printf("%d ", gsamples[i]);
-    // printf("\n");
-    // <DEBUG/>
-
     // Process P0 sorts the regular samples using quick sort
     qsort(gsamples, psqr, sizeof(int), compare);
 
-    // <DEBUG>
-    // printf("[P(%d)] Sorted collected regular samples:\n", id);
-    // for (int i = 0; i < psqr; i++)
-    //  printf("%d ", gsamples[i]);
-    // printf("\n");
-    // <DEBUG/>
-
     // Process P0 chooses (P - 1) pivot values
     for (int i = 1; i < p; i++)
-    {
       pivots[i - 1] = gsamples[((p * i) + (p / 2) - 1)];
-      // printf("[P(%d)] Chosen pivots(%d): %d\n", id, i, pivots[i - 1]);
-    }
     
     // * free memory
     free(gsamples);
@@ -113,16 +77,9 @@ int main(int argc, const char *argv[])
   // Broadcast the pivots to the P processes
   MPI_Bcast(pivots, (p - 1), MPI_INT, ROOT, MPI_COMM_WORLD);
 
-  // <DEBUG>
-  // printf("[P(%d)] Received pivots:\n", id);
-  // for (int i = 0; i < (p - 1); i++)
-  // {
-  //  printf("[P(%d)] Pivot(%d): %d\n", id, (i + 1), pivots[i]);
-  // }
-  // <DEBUG/>
-
   // Each process partitions its local sorted sub-list into P partitions,
   // with the P - 1 pivots as separators
+  // TODO: Try MPI_Isend
   partitions = malloc(p * sizeof(int));
   for (int i = 0, z = 0, partitioned = 0; i <= s; i++)
   {
@@ -136,7 +93,6 @@ int main(int argc, const char *argv[])
       partitions[z] = malloc(psize * sizeof(int));
       memcpy(partitions[z], &(chunk[i - psize]), (psize * sizeof(int)));
 
-      // Each process keeps i(th) partition and sends j(th) partition to process P(j)
       if (z != id)
         MPI_Send(partitions[z], psize, MPI_INT, z, 0, MPI_COMM_WORLD);
       else
@@ -152,6 +108,7 @@ int main(int argc, const char *argv[])
   free(pivots);
 
   // Merge partitions from other processes
+  // TODO: Try MPI_Irecv
   rpartitions = malloc(s * sizeof(int));
   rpartsize = 0;
   for (int i = 0; i < p; i++)
@@ -161,7 +118,6 @@ int main(int argc, const char *argv[])
       MPI_Status status;
       MPI_Recv(&(rpartitions[rpartsize]), s, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
       rpartsize += status._count / sizeof(int);
-      // printf("P%d recieving from P%d | elements = %ld\n", id, status.MPI_SOURCE, status._count / sizeof(int));
     }
     else
     {
@@ -177,20 +133,25 @@ int main(int argc, const char *argv[])
 
   qsort(rpartitions, rpartsize, sizeof(int), compare);
 
-  // printf("--- %d\n", rpartsize);
-  printf("[P%d] ---\n", id);
-  for (int i = 0; i < rpartsize; i++)
-  {
-    printf("[%d]\n", rpartitions[i]);
-  }    
+  // Each process sends its partition to P0
+  // TODO: Try MPI_Isend
+  if (id != ROOT)
+    MPI_Send(rpartitions, rpartsize, MPI_INT, ROOT, 0, MPI_COMM_WORLD);
 
-  if (id == ROOT)
-    fvalues = malloc(size * sizeof(int));
-
-  //TODO: Gather sub-lists from all processes
-
+  // P0 merge all received partitions
+  // TODO: Try MPI_Irecv
   if (id == ROOT)
   {
+    fvalues = malloc(size * sizeof(int));    
+    memcpy(fvalues, rpartitions, (rpartsize * sizeof(int)));
+    
+    for (int i = 1, idx = rpartsize; i < p; i++)
+    {
+      MPI_Status status;
+      MPI_Recv(&(fvalues[idx]), size, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+      idx += status._count / sizeof(int);
+    }
+
     writeToFile(OUTPUTFILE, fvalues, size);
 
     // * free memory
