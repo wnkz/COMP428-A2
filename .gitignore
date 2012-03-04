@@ -5,7 +5,5 @@
 .DS_Store
 build
 bin
-input.txt
-output.txt
-valgrind.log
-megainput.txt
+*.txt
+*.log

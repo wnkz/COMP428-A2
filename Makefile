@@ -36,6 +36,7 @@ OBJ_PSRS    = $(SRC_PSRS:.c=.o)
 OBJ_PQSORT  = $(SRC_PQSORT:.c=.o)
 OBJ_SHARED  = $(SRC_SHARED:.c=.o)
 
+LIBS				= -lm
 INCLUDES    = -I$(DIR_SHARED)
 CFLAGS      = -W -Wall -std=c99 $(INCLUDES)
 
@@ -57,15 +58,15 @@ all: DIR_OBJ = $(DIR_OUT)/obj
 all: createdirectories $(NAME_QSORT) $(NAME_PSRS) $(NAME_PQSORT)
 
 $(NAME_QSORT): $(OBJ_QSORT) $(OBJ_SHARED)
-	$(CC) -o $(DIR_BIN)/$(NAME_QSORT) $(DIR_OBJ)/$(notdir $(OBJ_QSORT)) $(patsubst %,$(DIR_OBJ)/%,$(notdir $(OBJ_SHARED)))
+	$(CC) $(LIBS) -o $(DIR_BIN)/$(NAME_QSORT) $(DIR_OBJ)/$(notdir $(OBJ_QSORT)) $(patsubst %,$(DIR_OBJ)/%,$(notdir $(OBJ_SHARED)))
 	$(CP) $(DIR_BIN)/$(NAME_QSORT) $(DIR_COPY)
  
 $(NAME_PSRS): $(OBJ_PSRS) $(OBJ_SHARED)
-	$(CC) -o $(DIR_BIN)/$(NAME_PSRS) $(DIR_OBJ)/$(notdir $(OBJ_PSRS)) $(patsubst %,$(DIR_OBJ)/%,$(notdir $(OBJ_SHARED)))
+	$(CC) $(LIBS) -o $(DIR_BIN)/$(NAME_PSRS) $(DIR_OBJ)/$(notdir $(OBJ_PSRS)) $(patsubst %,$(DIR_OBJ)/%,$(notdir $(OBJ_SHARED)))
 	$(CP) $(DIR_BIN)/$(NAME_PSRS) $(DIR_COPY)
 
 $(NAME_PQSORT): $(OBJ_PQSORT) $(OBJ_SHARED)
-	$(CC) -o $(DIR_BIN)/$(NAME_PQSORT) $(DIR_OBJ)/$(notdir $(OBJ_PQSORT)) $(patsubst %,$(DIR_OBJ)/%,$(notdir $(OBJ_SHARED)))
+	$(CC) $(LIBS) -o $(DIR_BIN)/$(NAME_PQSORT) $(DIR_OBJ)/$(notdir $(OBJ_PQSORT)) $(patsubst %,$(DIR_OBJ)/%,$(notdir $(OBJ_SHARED)))
 	$(CP) $(DIR_BIN)/$(NAME_PQSORT) $(DIR_COPY)
 
 .c.o:

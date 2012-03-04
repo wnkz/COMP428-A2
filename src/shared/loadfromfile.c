@@ -11,10 +11,10 @@
 #include <string.h>
 #include "comp428a2.h"
 
-int *loadFromFile(const char *filename, int *nSize)
+int *loadFromFile(const char *filename, size_t *nSize)
 {
   FILE *f;
-  long fSize;
+  unsigned long fSize;
   char *buffer, *numbers;
   int* values;
 
@@ -45,7 +45,7 @@ int *loadFromFile(const char *filename, int *nSize)
 
   // Get the number of values for allocation
   (*nSize) = 1;
-  for (int i = 0; i < fSize; i++)
+  for (size_t i = 0; i < fSize; i++)
     if (buffer[i] == ',')
       (*nSize)++;
 
@@ -55,11 +55,12 @@ int *loadFromFile(const char *filename, int *nSize)
     return NULL;
   }
 
-  numbers = strtok(buffer, ",");
-  for (int i = 0; numbers != NULL; i++)
+  const char *delim = ",";
+  numbers = strtok(buffer, delim);
+  for (size_t i = 0; numbers != NULL; i++)
   {
     values[i] = atoi(numbers);
-    numbers = strtok(NULL, ",");
+    numbers = strtok(NULL, delim);
   }
 
   fclose(f);

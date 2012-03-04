@@ -17,21 +17,30 @@
 
 int main(int argc, const char *argv[])
 {
-  int size, s, psqr;
+  size_t size, s;
   int *values;
-  int *fvalues, *chunk, *rsamples, *gsamples, *pivots, *rpartitions;
-  int **partitions;
-  int id, p, mypsize, rpartsize;
+  int id, p;
+  double totaltime;
 
   MPI_Init(&argc, (char***)&argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &id);
   MPI_Comm_size(MPI_COMM_WORLD, &p);
 
+  size = 0;
+  s = 0;
+
   if (id == ROOT)
   {
+    // STEP indications
     write(1, "Loading values... ", 18);
+    double t = MPI_Wtime();
     values = loadFromFile(INPUTFILE, &size);
-    write(1, "done.\n", 6);
+    // STEP indications
+    printf("done. (%.3fs)\n", MPI_Wtime() - t);
+
+    // STEP indications
+    write(1, "Sorting values... ", 18);
+    totaltime = MPI_Wtime();
 
     if (values == NULL)
     {
@@ -39,92 +48,99 @@ int main(int argc, const char *argv[])
       return EXIT_FAILURE;
     }
 
-    s = (int)(size / p);
+    s = (size_t)(size / p);
 
-    printf("[P%d] START\n", id);
+    // STEP indications
+    // printf("[P%d] START\n", id);
   }
 
   // Broadcast size of array that each slave has to sort
-  MPI_Bcast(&s, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+  MPI_Bcast(&size, 1, MPI_UNSIGNED, ROOT, MPI_COMM_WORLD);
+  MPI_Bcast(&s, 1, MPI_UNSIGNED, ROOT, MPI_COMM_WORLD);
 
-  chunk = malloc(s * sizeof(int));
+  int *chunk = malloc(s * sizeof(int));
 
   // Scatter the values from array to the slaves
   MPI_Scatter(values, s, MPI_INT, chunk, s, MPI_INT, ROOT, MPI_COMM_WORLD);
 
-  printf("[P%d] STEP1 > START qsort\n", id);
+  // STEP indications
+  // printf("[P%d] STEP1 > START qsort\n", id);
 
   // Each process sorts its own sub-list of [N/P]
   qsort(chunk, s, sizeof(int), compare);
 
-  printf("[P%d] COMPLETED STEP1\n", id);
+  // STEP indications
+  // printf("[P%d] COMPLETED STEP1\n", id);
 
   //Each process selects P items from its local sorted sub-list
-  rsamples = malloc(p * sizeof(int));
-  psqr = (int)(pow(p, 2));
-  for (int i = 0; i < p; i++)
-    rsamples[i] = chunk[(int)((size * i) / psqr)];
+  size_t psqr;
+  int *regularsamples, *gatheredsamples;
+
+  regularsamples = malloc(p * sizeof(int));
+  psqr = (size_t)(pow(p, 2));
+
+  for (size_t i = 0; i < (size_t)p; i++)
+    regularsamples[i] = chunk[(size_t)((size * i) / psqr)];
 
   if (id == ROOT)
-    gsamples = malloc(psqr * sizeof(int));
+    gatheredsamples = malloc(psqr * sizeof(int));
 
   // Process P0 collects the regular samples from the P processes (which includes itself)
-  MPI_Gather(rsamples, p, MPI_INT, gsamples, p, MPI_INT, ROOT, MPI_COMM_WORLD);
+  MPI_Gather(regularsamples, p, MPI_INT, gatheredsamples, p, MPI_INT, ROOT, MPI_COMM_WORLD);
 
-  printf("[P%d] COMPLETED STEP2\n", id);
+  // STEP indications
+  // printf("[P%d] COMPLETED STEP2\n", id);
 
   // * free memory
-  free(rsamples);
+  free(regularsamples);
 
-  pivots = malloc((p - 1) * sizeof(int));
+  int *pivots = malloc((p - 1) * sizeof(int));
+
   if (id == ROOT)
   {
     // Process P0 sorts the regular samples using quick sort
-    qsort(gsamples, psqr, sizeof(int), compare);
-  
-    // Process P0 chooses (P - 1) pivot values
-    for (int i = 1; i < p; i++)
-      pivots[i - 1] = gsamples[((p * i) + (p / 2) - 1)];
+    qsort(gatheredsamples, psqr, sizeof(int), compare);
 
-    printf("[P%d] COMPLETED STEP3\n", id);
-    
+    // Process P0 chooses (P - 1) pivot values
+    for (size_t i = 1; i < (size_t)p; i++)
+      pivots[i - 1] = gatheredsamples[((p * i) + (p / 2) - 1)];
+
+    // STEP indications
+    // printf("[P%d] COMPLETED STEP3\n", id);
+
     // * free memory
-    free(gsamples);
+    free(gatheredsamples);
   }
-  
+
   // Broadcast the pivots to the P processes
   MPI_Bcast(pivots, (p - 1), MPI_INT, ROOT, MPI_COMM_WORLD);
 
-
   // Each process partitions its local sorted sub-list into P partitions,
   // with the P - 1 pivots as separators
-  // TODO: Try MPI_Isend
-  // int MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
-  MPI_Request send_requests[p];
 
-  printf("[P%d] STEP4 > START sending partitions to other processes.\n", id);
- 
-  partitions = malloc(p * sizeof(int*));
-  for (int i = 0, z = 0, partitioned = 0; i <= s; i++)
+  // STEP indications
+  // printf("[P%d] STEP4 > sending partitions to other processes.\n", id);
+
+  size_t mypsize;
+  int **partitions = malloc(p * sizeof(int*));
+  MPI_Request *send_requests = malloc(p * sizeof(MPI_Request));
+
+  for (size_t i = 0, z = 0, partitioned = 0; i <= s; i++)
   {
-    if ((z >= (p - 1)) || (pivots[z] < chunk[i]))
-    { 
+    if ((z >= ((size_t)p - 1)) || (pivots[z] < chunk[i]))
+    {
       // If last partition, get to the end of chunk
-      if (z >= (p - 1))
+      if (z >= ((size_t)p - 1))
         for (; i < s; i++);
-      
-      int psize = (i - partitioned);
-      partitions[z] = malloc(((psize + 1) * sizeof(int)));
+
+      size_t psize = (i - partitioned);
+      partitions[z] = malloc(psize * sizeof(int));
       memcpy(partitions[z], &(chunk[i - psize]), (psize * sizeof(int)));
-      
-      if (z != id)
+
+      if (z != (size_t)id)
       {
-        MPI_Status status;
-        // MPI_Send(partitions[z], psize, MPI_INT, z, 0, MPI_COMM_WORLD);
-        MPI_Isend(partitions[z], psize, MPI_INT, z, 0, MPI_COMM_WORLD, &(send_requests[z]));
-        // printf("\t[P%d] Waiting for partition to be sent...\n", id);
-        // MPI_Wait(&(send_requests[z]), &status);
-        // printf("\t[P%d] Partition sent\n", id);        
+        MPI_Isend(&psize, 1, MPI_UNSIGNED, z, PSIZETAG, MPI_COMM_WORLD, &(send_requests[z]));
+        MPI_Isend(partitions[z], psize, MPI_INT, z, PARTITIONTAG, MPI_COMM_WORLD, &(send_requests[z]));
       }
       else
         mypsize = psize;
@@ -134,61 +150,96 @@ int main(int argc, const char *argv[])
     }
   }
 
-  printf("[P%d] COMPLETED STEP4\n", id);
-  
+  // STEP indications
+  // printf("[P%d] STEP4 > all partitions sent.\n", id);
+  // printf("[P%d] COMPLETED STEP4\n", id);
+
   // * free memory
   free(chunk);
   free(pivots);
 
   // Merge partitions from other processes
-  // TODO: Try MPI_Irecv
-  // int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request)
-  MPI_Request recv_requests[p];
-  
-  rpartitions = malloc((s * 2) * sizeof(int));
-  rpartsize = 0;
-  for (int i = 0; i < p; i++)
+  size_t *rpsize;
+  int **rpartitions;
+  MPI_Request *recv_psize_requests, *recv_partition_requests;
+  MPI_Status *psize_status, *partitions_status;
+
+  rpsize = malloc(p * sizeof(size_t));
+  bzero(rpsize, p * sizeof(size_t));
+
+  // Make all allocations needed
+  rpartitions = malloc(p * sizeof(int*));
+  for (size_t i = 0; i < (size_t)p; i++)
+    rpartitions[i] = malloc(s * sizeof(int));
+  recv_psize_requests = malloc((p - 1) * sizeof(MPI_Request));
+  recv_partition_requests = malloc((p - 1) * sizeof(MPI_Request));
+  psize_status = malloc((p - 1) * sizeof(MPI_Status));
+  partitions_status = malloc((p - 1) * sizeof(MPI_Status));
+
+  for (size_t i = 0, idx = 0; i < (size_t)p; i++)
   {
-    if (i != id)
+    if (i != (size_t)id)
     {
-      MPI_Status status;
-      // MPI_Recv(&(rpartitions[rpartsize]), s, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-      MPI_Irecv(&(rpartitions[rpartsize]), s, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &(recv_requests[i]));
-      MPI_Wait(&recv_requests[i], &status);
-      rpartsize += status._count / sizeof(int);
-    }
-    else
-    {
-      memmove(&(rpartitions[rpartsize]), partitions[id], (mypsize * sizeof(int)));
-      rpartsize += mypsize;
+      MPI_Irecv(&(rpsize[idx]), 1, MPI_UNSIGNED, i, PSIZETAG, MPI_COMM_WORLD, &(recv_psize_requests[idx]));
+      MPI_Irecv(rpartitions[idx], s, MPI_INT, i, PARTITIONTAG, MPI_COMM_WORLD, &(recv_partition_requests[idx]));
+      idx++;
     }
   }
 
-  printf("[P%d] STEP5 > DONE RECV\n", id);
-  
+  int *ripartition = malloc((s * 2) * sizeof(int));
+
+  // Copy own sub-list to intermediate partition
+  memcpy(ripartition, partitions[id], (mypsize * sizeof(int)));
+
+  // Wait to receive from other processes
+  MPI_Waitall((p - 1), recv_psize_requests, psize_status);
+  // STEP indications
+  // printf("[P%d] STEP5 > All partitions' sizes received\n", id);
+  MPI_Waitall((p - 1), recv_partition_requests, partitions_status);
+  // STEP indications
+  // printf("[P%d] STEP5 > All partitions received\n", id);
+
+  // Copy received values to intermediate partition
+  size_t rpartsize = mypsize;
+  for (size_t i = 0; i < ((size_t)p - 1); i++)
+  {
+    memcpy(&(ripartition[rpartsize]), rpartitions[i], (rpsize[i] * sizeof(int)));
+    rpartsize += rpsize[i];
+  }
+
+  // STEP indications
+  // printf("[P%d] STEP5 > Done copying received partitions\n", id);
+
   // * free memory
   for (int i = 0; i < p; i++)
     free(partitions[i]);
   free(partitions);
-  
-  qsort(rpartitions, rpartsize, sizeof(int), compare);
+
+  // STEP indications
+  // printf("[P%d] STEP5 > Start sorting intermediate partition\n", id);
+
+  qsort(ripartition, rpartsize, sizeof(int), compare);
+
+  // STEP indications
+  // printf("[P%d] STEP5 > Done sorting intermediate partition\n", id);
 
   // Each process sends its partition to P0
   // TODO: Try MPI_Isend
   // int MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
   if (id != ROOT) {
     // MPI_Request request;
-    MPI_Send(rpartitions, rpartsize, MPI_INT, ROOT, 0, MPI_COMM_WORLD);
-    // MPI_Isend(rpartitions, rpartsize, MPI_INT, ROOT, 0, MPI_COMM_WORLD, &request);
+    MPI_Send(ripartition, rpartsize, MPI_INT, ROOT, 0, MPI_COMM_WORLD);
+    // MPI_Isend(ripartition, rpartsize, MPI_INT, ROOT, 0, MPI_COMM_WORLD, &request);
   }
-  
+
   // P0 merge all received partitions
   // TODO: Try MPI_Irecv
   if (id == ROOT)
   {
-    fvalues = malloc(size * sizeof(int));    
-    memcpy(fvalues, rpartitions, (rpartsize * sizeof(int)));
-    
+    int *fvalues;
+    fvalues = malloc(size * sizeof(int));
+    memcpy(fvalues, ripartition, (rpartsize * sizeof(int)));
+
     for (int i = 1, idx = rpartsize; i < p; i++)
     {
       MPI_Status status;
@@ -196,20 +247,25 @@ int main(int argc, const char *argv[])
       idx += status._count / sizeof(int);
     }
 
-    printf("[P%d] COMPLETED STEP5\n", id);
+    // STEP indications
+    // printf("[P%d] COMPLETED STEP5\n", id);
+    printf("done. (%.3fs)\n", MPI_Wtime() - totaltime);
 
+    // STEP indications
     write(1, "Writing to file... ", 19);
+    double t = MPI_Wtime();
     writeToFile(OUTPUTFILE, fvalues, size);
-    write(1, "done.\n", 6);
-  
+    // STEP indications
+    printf("done. (%.3fs)\n", MPI_Wtime() - t);
+
     // * free memory
     free(fvalues);
     free(values);
   }
 
   // * free memory
-  free(rpartitions);
-  
+  free(ripartition);
+
   MPI_Finalize();
   return EXIT_SUCCESS;
 }

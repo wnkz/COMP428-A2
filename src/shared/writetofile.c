@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include "comp428a2.h"
 
-int writeToFile(const char *filename, int *values, int nSize)
+int writeToFile(const char *filename, int *values, size_t nSize)
 {
   FILE *f;
 
@@ -19,9 +19,9 @@ int writeToFile(const char *filename, int *values, int nSize)
     return -1;
   }
 
-  int i;
+  size_t i;
   for (i = 0; i < (nSize - 1); i++)
-    fprintf(f, "%d, ", values[i]);
+    fprintf(f, "%d,", values[i]);
   fprintf(f, "%d\n", values[i]);
 
   fclose(f);

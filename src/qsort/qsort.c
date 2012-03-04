@@ -9,30 +9,44 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include "comp428a2.h"
 
 int main()
 {
-  int size;
+  size_t size;
   int *values;
-  
+  clock_t start, end;
+
+  // STEP indications
   write(1, "Loading values... ", 18);
+  start = clock();
   values = loadFromFile(INPUTFILE, &size);
-  write(1, "done.\n", 6);
+  // STEP indications
+  end = clock();
+  printf("done. (%.3fs)\n", ((double)(end - start)) / CLOCKS_PER_SEC);
 
   if (values == NULL)
   {
     fprintf(stderr, "Could not load input file\n");
     return EXIT_FAILURE;
   }
- 
-  write(1, "Sorting values... ", 18);
-  qsort(values, size, sizeof(int), compare);
-  write(1, "done.\n", 6);
 
+  // STEP indications
+  write(1, "Sorting values... ", 18);
+  start = clock();
+  qsort(values, size, sizeof(int), compare);
+  // STEP indications
+  end = clock();
+  printf("done. (%.3fs)\n", ((double)(end - start)) / CLOCKS_PER_SEC);
+
+  // STEP indications
   write(1, "Writing to file... ", 19);
+  start = clock();
   writeToFile(OUTPUTFILE, values, size);
-  write(1, "done.\n", 6);
+  // STEP indications
+  end = clock();
+  printf("done. (%.3fs)\n", ((double)(end - start)) / CLOCKS_PER_SEC);
 
   return EXIT_SUCCESS;
 }

@@ -9,11 +9,14 @@
 #ifndef __COMP428_A2_H__
 #define __COMP428_A2_H__
 
-#define INPUTFILE   "./input.txt"
-#define OUTPUTFILE  "./output.txt"
+#define PSIZETAG      1
+#define PARTITIONTAG  2
+
+#define INPUTFILE     "./input.txt"
+#define OUTPUTFILE    "./output.txt"
 
 int compare(const void *a, const void *b);
-int *loadFromFile(const char *filename, int *nSize);
-int writeToFile(const char *filename, int *values, int nSize);
+int *loadFromFile(const char *filename, size_t *nSize);
+int writeToFile(const char *filename, int *values, size_t nSize);
 
 #endif
