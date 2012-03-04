@@ -30,6 +30,6 @@ for (( i = 1; i <= n; i++ )); do
   if [[ i -eq n ]]; then
     printf "\n"
   else
-    printf ", "
+    printf ","
   fi
 done

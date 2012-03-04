@@ -30,7 +30,7 @@ int *loadFromFile(const char *filename, int *nSize)
   rewind(f);
 
   // Allocate memory for the file
-  if ((buffer = malloc(fSize * sizeof(char))) == NULL)
+  if ((buffer = malloc(fSize * sizeof(char) + 1)) == NULL)
   {
     fprintf(stderr, "Cannot allocate memory\n");
     return NULL;
@@ -45,7 +45,7 @@ int *loadFromFile(const char *filename, int *nSize)
 
   // Get the number of values for allocation
   (*nSize) = 1;
-  for (int i = 0; buffer[i]; i++)
+  for (int i = 0; i < fSize; i++)
     if (buffer[i] == ',')
       (*nSize)++;
 

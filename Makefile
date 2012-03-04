@@ -39,10 +39,11 @@ OBJ_SHARED  = $(SRC_SHARED:.c=.o)
 INCLUDES    = -I$(DIR_SHARED)
 CFLAGS      = -W -Wall -std=c99 $(INCLUDES)
 
+release: CFLAGS	+= -O3
 release: DIR_OUT = $(DIR_BUILD)/release
 release: all
 
-debug: CFLAGS 	+= -g
+debug: CFLAGS 	+= -g3 -ggdb3
 debug: DIR_OUT   = $(DIR_BUILD)/debug
 debug: all
 

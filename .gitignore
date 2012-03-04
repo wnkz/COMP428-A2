@@ -7,3 +7,5 @@ build
 bin
 input.txt
 output.txt
+valgrind.log
+megainput.txt
