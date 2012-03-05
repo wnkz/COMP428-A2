@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 #include <math.h>
 #include <mpi.h>
@@ -222,7 +223,7 @@ int main(int argc, const char *argv[])
 
     MPI_Isend(&rpartsize, 1, MPI_UNSIGNED, ROOT, PSIZETAG, MPI_COMM_WORLD, &psize_request);
     MPI_Isend(ripartition, rpartsize, MPI_INT, ROOT, PARTITIONTAG, MPI_COMM_WORLD, &partition_request);
-    
+
     MPI_Wait(&psize_request, MPI_STATUS_IGNORE);
     MPI_Wait(&partition_request, MPI_STATUS_IGNORE);
   }
@@ -233,10 +234,10 @@ int main(int argc, const char *argv[])
   {
     int *fvalues;
     MPI_Request *fpsize_requests, *fpartition_requests;
-    
+
     fpsize_requests = malloc((p - 1) * sizeof(MPI_Request));
     fpartition_requests = malloc((p - 1) * sizeof(MPI_Request));
-    
+
     for (size_t i = 0, idx = 0; i < (size_t)p; i++)
     {
       if (i != (size_t)id)
@@ -246,33 +247,33 @@ int main(int argc, const char *argv[])
         idx++;
       }
     }
-    
-    fvalues = malloc(size * sizeof(int));    
-    
+
+    fvalues = malloc(size * sizeof(int));
+
     // Wait to receive from other processes
     MPI_Waitall((p - 1), fpsize_requests, MPI_STATUSES_IGNORE);
     MPI_Waitall((p - 1), fpartition_requests, MPI_STATUSES_IGNORE);
 
     memcpy(fvalues, ripartition, (rpartsize * sizeof(int)));
-   
+
     // Copy received values to intermediate partition
     for (size_t i = 0, idx = rpartsize; i < ((size_t)p - 1); i++)
     {
       memcpy(&(fvalues[idx]), rpartitions[i], (rpsize[i] * sizeof(int)));
       idx += rpsize[i];
     }
-    
+
     // STEP indications
     // printf("[P%d] COMPLETED STEP5\n", id);
     printf("done. (%.3fs)\n", MPI_Wtime() - totaltime);
-    
+
     // STEP indications
     write(1, "Writing to file... ", 19);
     double t = MPI_Wtime();
     writeToFile(OUTPUTFILE, fvalues, size);
     // STEP indications
     printf("done. (%.3fs)\n", MPI_Wtime() - t);
-    
+
     // * free memory
     free(fvalues);
     free(values);

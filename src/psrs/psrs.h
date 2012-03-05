@@ -9,6 +9,9 @@
 #ifndef __PSRS_H__
 #define __PSRS_H__
 
-#define ROOT 0
+#define ROOT          0
+
+#define PSIZETAG      1
+#define PARTITIONTAG  2
 
 #endif

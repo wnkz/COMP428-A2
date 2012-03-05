@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include "comp428a2.h"
 
 int *loadFromFile(const char *filename, size_t *nSize)

@@ -9,9 +9,6 @@
 #ifndef __COMP428_A2_H__
 #define __COMP428_A2_H__
 
-#define PSIZETAG      1
-#define PARTITIONTAG  2
-
 #define INPUTFILE     "./input.txt"
 #define OUTPUTFILE    "./output.txt"
 
