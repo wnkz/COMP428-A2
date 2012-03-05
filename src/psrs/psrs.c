@@ -70,6 +70,7 @@ int main(int argc, const char *argv[])
   int *regularsamples, *gatheredsamples;
 
   regularsamples = malloc(p * sizeof(int));
+  gatheredsamples = NULL;
   psqr = (size_t)(pow(p, 2));
 
   for (size_t i = 0; i < (size_t)p; i++)
