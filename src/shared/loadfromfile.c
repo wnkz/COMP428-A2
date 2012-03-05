@@ -23,39 +23,42 @@ int *loadFromFile(const char *filename, size_t *nSize)
     fprintf(stderr, "Cannot open file: %s for reading\n", filename);
     return NULL;
   }
-
+  
   // Get file size
   fseek(f, 0, SEEK_END);
   fSize = ftell(f);
   rewind(f);
-
+  
   // Allocate memory for the file
-  if ((buffer = malloc(fSize * sizeof(char) + 1)) == NULL)
+  if ((buffer = malloc((fSize + 1) * sizeof(char))) == NULL)
   {
     fprintf(stderr, "Cannot allocate memory\n");
     return NULL;
   }
 
+  // Clear the buffer
+  bzero(buffer, ((fSize + 1) * sizeof(char)));
+  
   // Copy the file into the buffer
   if ((size_t)fSize != fread(buffer, 1, fSize, f))
   {
     fprintf(stderr, "fread() error\n");
     return NULL;
   }
-
+  
   // Get the number of values for allocation
   (*nSize) = 1;
   for (size_t i = 0; i < fSize; i++)
     if (buffer[i] == ',')
       (*nSize)++;
-
+  
   if ((values = malloc((*nSize) * sizeof(int))) == NULL)
   {
     fprintf(stderr, "Cannot allocate memory\n");
     return NULL;
   }
 
-  const char *delim = ",";
+  const char *delim = ",\n ";
   numbers = strtok(buffer, delim);
   for (size_t i = 0; numbers != NULL; i++)
   {
