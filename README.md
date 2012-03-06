@@ -28,7 +28,7 @@ Executables will be in the `bin` folder.
 
 ## Generate numbers ##
 
-There is a script in the `tools` folder to help you generate numbers.
+There is two scripts in the `tools` folder to help you generate numbers.
 
 * To generate 100 numbers between 0 and 1000
 
@@ -45,3 +45,9 @@ There is a script in the `tools` folder to help you generate numbers.
 * To generate N numbers between X and Z
 
 `tools/generatenumbers.sh N Z X`
+
+The Perl version of this script works the same way except it generates *unique* numbers.
+
+To write those numbers into a file, simply use a redirection, for example:
+
+`tools/generatenumbers.sh > input.txt`
